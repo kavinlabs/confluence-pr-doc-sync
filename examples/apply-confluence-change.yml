@@ -21,7 +21,7 @@ jobs:
       issues: write
 
     steps:
-      - uses: kavingct/confluence-pr-doc-sync@v1
+      - uses: kavinlabs/confluence-pr-sync-agent@v1
         with:
           mode: apply
           confluence_type: cloud
@@ -31,6 +31,6 @@ jobs:
           page_ids: |
             123456789
             987654321
-          llm_provider: anthropic
-          llm_model: claude-3-5-sonnet-20241022
-          llm_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          llm_provider: openai
+          llm_model: gpt-4o
+          llm_api_key: ${{ secrets.OPENAI_API_KEY }}
