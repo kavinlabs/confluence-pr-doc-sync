@@ -81087,8 +81087,35 @@ async function runPropose(inputs, context, octokit) {
         core.warning('No Confluence pages could be fetched. Skipping LLM call.');
         return;
     }
-    //Call LLM
-    const proposal = await (0, llm_1.callLLM)(inputs, prTitle, prBody, prLabels, diff, pages);
+    //Call LLM once per page to keep context focused and bounded
+    const mergedPageProposals = [];
+    for (const page of pages) {
+        core.info(`Calling LLM for page ${page.id}: "${page.title}"`);
+        const pageProposal = await (0, llm_1.callLLM)(inputs, prTitle, prBody, prLabels, diff, [page]);
+        if (!Array.isArray(pageProposal.pages) || pageProposal.pages.length === 0) {
+            core.info(`No documentation changes proposed for page ${page.id}`);
+            continue;
+        }
+        // In per-page mode we only accept one page result, anchored to the current page id.
+        const matched = pageProposal.pages.find((p) => p.id === page.id) ?? pageProposal.pages[0];
+        if (matched.id !== page.id) {
+            core.warning(`LLM returned page id "${matched.id}" while evaluating page "${page.id}". Remapping to current page id.`);
+        }
+        mergedPageProposals.push({
+            id: page.id,
+            changes: Array.isArray(matched.changes) ? matched.changes : [],
+            risks: Array.isArray(matched.risks) ? matched.risks : [],
+        });
+    }
+    const proposal = mergedPageProposals.length > 0
+        ? {
+            summary: `Proposed documentation changes for ${mergedPageProposals.length} page(s).`,
+            pages: mergedPageProposals,
+        }
+        : {
+            summary: 'No documentation changes required.',
+            pages: [],
+        };
     //Create or update PR comment
     const commentBody = (0, comment_1.buildProposalComment)(proposal, pages.map((p) => ({
         id: p.id,
