@@ -1,0 +1,92 @@
+name: 'confluence-pr-sync-agent'
+description: 'Uses an LLM to propose and apply Confluence page updates based on Pull Request diffs'
+author: 'confluence-pr-sync-agent'
+
+branding:
+  icon: 'file-text'
+  color: 'blue'
+
+inputs:
+  mode:
+    description: '"propose" (runs on PR events) or "apply" (runs on issue_comment events)'
+    required: false
+    default: 'propose'
+
+  confluence_type:
+    description: '"cloud" (Basic Auth: email+token) or "datacenter" (Bearer Auth: PAT)'
+    required: true
+
+  confluence_base_url:
+    description: 'Base URL of your Confluence instance (e.g. https://myorg.atlassian.net/wiki)'
+    required: true
+
+  confluence_token:
+    description: 'Confluence API token (cloud) or Personal Access Token (datacenter)'
+    required: true
+
+  confluence_user:
+    description: 'Confluence user email (required for cloud Basic Auth only)'
+    required: false
+    default: ''
+
+  page_ids:
+    description: 'Newline-separated list of Confluence page IDs to check and update'
+    required: true
+
+  llm_provider:
+    description: '"openai" | "anthropic" | "google" | "openai-compatible"'
+    required: true
+
+  llm_model:
+    description: 'Model name/ID to use (e.g. gpt-4o, claude-3-5-sonnet-20241022, gemini-1.5-pro)'
+    required: true
+
+  llm_api_key:
+    description: 'API key for the LLM provider'
+    required: true
+
+  llm_base_url:
+    description: 'Custom base URL for openai-compatible providers (e.g. Ollama, LocalAI)'
+    required: false
+    default: ''
+
+  custom_prompt:
+    description: 'Optional extra instructions appended to the LLM system prompt'
+    required: false
+    default: ''
+
+  include_paths:
+    description: 'Newline-separated glob patterns, only matching diff paths are sent to the LLM'
+    required: false
+    default: ''
+
+  exclude_paths:
+    description: 'Newline-separated glob patterns, matching diff paths are excluded'
+    required: false
+    default: ''
+
+  max_diff_bytes:
+    description: 'Maximum number of bytes of diff to send to the LLM'
+    required: false
+    default: '200000'
+
+  dry_run:
+    description: 'If "true", log actions but do not write to Confluence or post comments'
+    required: false
+    default: 'false'
+
+  github_token:
+    description: 'GitHub token used to post/update PR comments and check collaborator permissions'
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  proposal_comment_id:
+    description: 'ID of the PR comment containing the proposal (propose mode)'
+
+  updated_page_ids:
+    description: 'Comma-separated list of Confluence page IDs that were updated (apply mode)'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
